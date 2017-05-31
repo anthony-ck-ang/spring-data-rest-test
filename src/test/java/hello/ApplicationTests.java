@@ -1,0 +1,156 @@
+/*
+ * Copyright 2016 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package hello;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import static org.hamcrest.Matchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@RunWith(SpringRunner.class)
+@SpringBootTest
+@AutoConfigureMockMvc
+public class ApplicationTests {
+
+	@Autowired
+	private MockMvc mockMvc;
+
+	@Autowired
+	private PersonRepository personRepository;
+
+	@Before
+	public void deleteAllBeforeTests() throws Exception {
+		personRepository.deleteAll();
+	}
+
+	@Test
+	public void shouldReturnRepositoryIndex() throws Exception {
+
+		mockMvc.perform(get("/"))
+				.andDo(print())
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$._links.people").exists());	//"$"-> root object/element, "."->child operator
+	}
+
+	@Test
+	public void shouldCreateEntity() throws Exception {
+
+		mockMvc.perform(post("/people").content("{\"firstName\": \"Frodo\", \"lastName\":\"Baggins\"}"))
+				.andExpect(status().isCreated())
+				.andExpect(header().string("Location", containsString("people/")));	//check if key (location) has a "people/" string (value).
+	}
+
+	@Test
+	public void shouldRetrieveEntity() throws Exception {
+
+		MvcResult mvcResult = mockMvc
+				.perform(post("/people").content("{\"firstName\": \"Frodo\", \"lastName\":\"Baggins\"}"))
+				.andExpect(status().isCreated()).andReturn();
+
+		String location = mvcResult.getResponse().getHeader("Location");
+		
+		mockMvc.perform(get(location))
+				.andExpect(status().isOk()) //status 200
+				.andExpect(jsonPath("$.firstName").value("Frodo"))
+				.andExpect(jsonPath("$.lastName").value("Baggins"));
+	}
+
+	@Test
+	public void shouldQueryEntity() throws Exception {
+		
+		//post	
+		mockMvc.perform(post("/people").content("{ \"firstName\": \"Frodo\", \"lastName\":\"Baggins\"}"))
+				.andExpect(status().isCreated());
+		
+		//query ? custom method (findByLastName) from repository
+		mockMvc.perform(get("/people/search/findByLastName?name={name}", "Baggins"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$._embedded.people[0].firstName").value("Frodo"));//
+	}
+
+	@Test
+	public void shouldUpdateEntity() throws Exception {
+
+		MvcResult mvcResult = mockMvc
+				.perform(post("/people").content("{\"firstName\": \"Frodo\", \"lastName\":\"Baggins\"}"))
+				.andExpect(status().isCreated()).andReturn(); //201
+
+		String location = mvcResult.getResponse().getHeader("Location");
+		
+		//put(update) first name to "Bilbo"
+		mockMvc.perform(put(location).content("{\"firstName\": \"Bilbo\", \"lastName\":\"Baggins\"}"))
+				.andExpect(status().isNoContent());
+
+		mockMvc.perform(get(location)).andExpect(status().isOk())
+				.andExpect(jsonPath("$.firstName").value("Bilbo"))
+				.andExpect(jsonPath("$.lastName").value("Baggins"));
+	}
+
+	@Test
+	public void shouldPartiallyUpdateEntity() throws Exception {
+		
+		//create/post request -> test for 201
+		MvcResult mvcResult = mockMvc
+				.perform(post("/people").content("{\"firstName\": \"Frodo\", \"lastName\":\"Baggins\"}"))
+				.andExpect(status().isCreated()).andReturn();
+		
+		//get header ("Location") value
+		String location = mvcResult.getResponse().getHeader("Location");
+
+		//patch -> just firstName attribute
+		mockMvc.perform(patch(location).content("{\"firstName\": \"Bilbo Jr.\"}"))
+				.andExpect(status().isNoContent());	
+		
+		/* 204 NO CONTENT 
+		 * The server has successfully fulfilled the request and 
+		 * that there is no additional content 
+		 * to send in the response payload body*/
+
+		//test for new patched value
+		mockMvc.perform(get(location))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.firstName").value("Bilbo Jr."))
+				.andExpect(jsonPath("$.lastName").value("Baggins"));
+	}
+
+	@Test
+	public void shouldDeleteEntity() throws Exception {
+
+		MvcResult mvcResult = mockMvc
+				.perform(post("/people").content("{ \"firstName\": \"Bilbo\", \"lastName\":\"Baggins\"}"))
+				.andExpect(status().isCreated()).andReturn();
+
+		String location = mvcResult.getResponse().getHeader("Location");
+		mockMvc.perform(delete(location))
+				.andExpect(status().isNoContent());
+
+		mockMvc.perform(get(location))
+				.andExpect(status().isNotFound());
+	}
+}

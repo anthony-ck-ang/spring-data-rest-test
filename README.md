@@ -17,7 +17,7 @@ Stores data in flexible, JSON-like documents.
 
 
 # Integration Test 
-Is a software development process,
+A software development process,
 where program units are combined and tested as groups in multiple ways.
 Can expose problems with the interfaces among program components.
 

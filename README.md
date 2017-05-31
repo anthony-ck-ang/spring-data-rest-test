@@ -18,7 +18,7 @@ Project: Accessing MongoDB with Spring Data rest + Integration Test
 2. On the command line type
   - brew install mongodb
 3. After install , launch the mongo daemon(background process)
-  mongod
+  - mongod
   all output going to: /usr/local/var/log/mongodb/mongo.log
 4. Start the MongoDB client from another terminal window by typing 
-  mongo
+  - mongo

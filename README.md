@@ -21,11 +21,13 @@ A software development process,
 where program units are combined and tested as groups in multiple ways.
 Can expose problems with the interfaces among program components.
 
+- Please refer to ApplicationTests class in src/test/java and run as JUnit test to view the integration test.
+- Code review of ApplicationTests class is done for basic understanding of integration test.
+- Please hover over the respective .attributes/ .methods and refer to the inline comments for basic understanding.
+
 # Note
 - Please check pom.xml for a list of dependencies used.
 - Please use a restful client or curl on command line to test this application manually.
 
-- Please refer to ApplicationTests class in src/test/java and run as JUnit test to view the integration test.
-- Code review of ApplicationTests class is done for basic understanding of integration test.
-- Please hover over the respective .attributes/ .methods and refer to the inline comments for basic understanding.
+
 
